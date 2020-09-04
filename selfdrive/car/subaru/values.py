@@ -153,6 +153,7 @@ FW_VERSIONS = {
     # 2018 Crosstrek - UDM / @rwalsh3
     # 2018 Crosstrek - UDM / @pemerick07
     # 2018 Crosstrek - UDM / @rwalsh3 (new engine fw)
+    # 2019 Impreza, FPv2 req'd after working for months
     # Ecu, addr, subaddr: ROM ID
     (Ecu.esp, 0x7b0, None): [
       b'\x7a\x94\x3f\x90\x00',
@@ -182,6 +183,7 @@ FW_VERSIONS = {
       b'\xaa!`u\a',
       b'\xaa!dq\a',
       b'\xaa!dt\a',
+      b'\xf1\x00\xa2\x10\t'
     ],
     (Ecu.transmission, 0x7e1, None): [
       b'\xe3\xe5\x46\x31\x00',
@@ -190,6 +192,7 @@ FW_VERSIONS = {
       b'\xe3\xf5G\x00\x00',
       b'\xe3\xf5\a\x00\x00',
       b'\xe3\xf5C\x00\x00',
+      b'\xf1\x00\xa4\x10@'
     ],
   },
   CAR.FORESTER_PREGLOBAL: {
