@@ -7,7 +7,7 @@ from functools import wraps
 
 import cereal.messaging as messaging
 from cereal import car
-from common.basedir import PARAMS
+from common.basedir import BASEDIR
 from common.params import Params
 from common.spinner import Spinner
 from panda import Panda
@@ -29,7 +29,7 @@ def reset_panda(fn):
 
 os.environ['STARTED'] = '1'
 os.environ['BOARDD_LOOPBACK'] = '1'
-os.environ['PARAMS_PATH'] = PARAMS
+os.environ['BASEDIR'] = BASEDIR
 
 @reset_panda
 @with_processes(['boardd'])
