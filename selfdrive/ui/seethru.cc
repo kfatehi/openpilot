@@ -3,7 +3,7 @@
 
 #include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
-#include "selfdrive/ui/qt/widgets/cameraview.h"
+#include "selfdrive/ui/qt/widgets/seethrucameraview.h"
 
 int main(int argc, char *argv[]) {
   QSurfaceFormat fmt;
@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
   QVBoxLayout *layout = new QVBoxLayout(&w);
   layout->setMargin(0);
   layout->setSpacing(0);
-  CameraViewWidget* camView = new CameraViewWidget(VISION_STREAM_RGB_BACK, true);
-  layout->addWidget(camView);
+  SeethruCameraViewWidget* view = new SeethruCameraViewWidget();
+  layout->addWidget(view);
 
   return a.exec();
 }
