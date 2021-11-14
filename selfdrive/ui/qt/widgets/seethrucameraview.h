@@ -25,8 +25,9 @@ public:
 //   void updateFrameMat(int w, int h);
 //   std::unique_ptr<VisionIpcClient> vipc_client;
 
-// protected slots:
-//   void updateFrame();
+protected slots:
+  void handleClick();
+  void handleFrameUpdate();
 
 // private:
 //   bool zoomed_view;
