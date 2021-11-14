@@ -26,8 +26,6 @@ public:
 //   std::unique_ptr<VisionIpcClient> vipc_client;
 
 protected slots:
-  void handleClick();
-  void handleFrameUpdate();
   void handleDriverState();
 
 private:
