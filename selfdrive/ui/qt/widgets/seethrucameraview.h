@@ -28,8 +28,11 @@ public:
 protected slots:
   void handleClick();
   void handleFrameUpdate();
+  void handleDriverState();
 
-// private:
+private:
+  SubMaster sm;
+
 //   bool zoomed_view;
 //   VisionBuf *latest_frame = nullptr;
 //   GLuint frame_vao, frame_vbo, frame_ibo;
