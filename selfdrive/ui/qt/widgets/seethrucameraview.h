@@ -16,9 +16,9 @@ public:
 //   void clicked();
 //   void frameUpdated();
 
-// protected:
+protected:
 //   void paintGL() override;
-//   void resizeGL(int w, int h) override;
+  void resizeGL(int w, int h) override;
 //   void initializeGL() override;
 //   void hideEvent(QHideEvent *event) override;
 //   void mouseReleaseEvent(QMouseEvent *event) override;
@@ -30,6 +30,9 @@ protected slots:
 
 private:
   SubMaster sm;
+  float face_x;
+  float face_y;
+  bool face_detected;
 
 //   bool zoomed_view;
 //   VisionBuf *latest_frame = nullptr;

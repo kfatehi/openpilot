@@ -8,18 +8,25 @@ SeethruCameraViewWidget::SeethruCameraViewWidget(QWidget* parent) : sm({"driverS
     connect(t, &QTimer::timeout, this, &SeethruCameraViewWidget::handleDriverState);
     t->start(10);
     qDebug() << "SeethruCamera started";
+    face_detected = false;
 }
 
 void SeethruCameraViewWidget::handleDriverState() {
     sm.update(0);
     cereal::DriverState::Reader driver_state = sm["driverState"].getDriverState();
-    bool face_detected = driver_state.getFaceProb() > 0.5;
+    face_detected = driver_state.getFaceProb() > 0.6;
     if (face_detected) {
         auto fxy_list = driver_state.getFacePosition();
-        float face_x = fxy_list[0];
-        float face_y = fxy_list[1];
-        qDebug() << "face detected at x:" << face_x << " y: " << face_y;
+        face_x = fxy_list[0];
+        face_y = fxy_list[1];
+        // qDebug() << "face detected at x:" << face_x << " y: " << face_y;
     } else {
-        qDebug() << "no face detected";
+        // qDebug() << "no face detected";
+        
     }
+}
+
+void SeethruCameraViewWidget::resizeGL(int w, int h) {
+    qDebug() << "resizeGL override" << w << h << face_x << face_y;
+    updateFrameMat((int)(w/face_x), (int)(h/face_y));
 }
