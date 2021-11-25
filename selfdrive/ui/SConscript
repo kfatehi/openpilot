@@ -21,7 +21,8 @@ if arch == "Darwin":
 widgets_src = ["qt/util.cc", "qt/widgets/input.cc", "qt/widgets/drive_stats.cc",
                "qt/widgets/ssh_keys.cc", "qt/widgets/toggle.cc", "qt/widgets/controls.cc",
                "qt/widgets/offroad_alerts.cc", "qt/widgets/prime.cc", "qt/widgets/keyboard.cc",
-               "qt/widgets/scrollview.cc", "qt/widgets/cameraview.cc", "#third_party/qrcode/QrCode.cc", "qt/api.cc",
+               "qt/widgets/scrollview.cc", "qt/widgets/cameraview.cc", "qt/widgets/seethrucameraview.cc",
+               "#third_party/qrcode/QrCode.cc", "qt/api.cc",
                "qt/request_repeater.cc", "qt/qt_window.cc"]
 
 if arch != 'aarch64':
@@ -128,3 +129,6 @@ if arch in ['x86_64', 'Darwin'] or GetOption('extras'):
 if maps:
   navd_src = ["navd/main.cc", "navd/route_engine.cc"]
   qt_env.Program("navd/_navd", navd_src, LIBS=qt_libs + ['common', 'json11'])
+
+seethru_src = ["seethru.cc"]
+qt_env.Program("seethru", seethru_src, LIBS=qt_libs + ['common', 'json11'])
