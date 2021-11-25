@@ -19,7 +19,7 @@ SeethruCameraViewWidget::SeethruCameraViewWidget(QWidget* parent) : sm({"driverS
     // start a timer to poll for driverstate
     QTimer *t = new QTimer(this);
     connect(t, &QTimer::timeout, this, &SeethruCameraViewWidget::handleDriverState);
-    t->start(10);
+    t->start(0);
     qDebug() << "SeethruCamera started";
     face_detected = false;
 }
@@ -99,6 +99,30 @@ void SeethruCameraViewWidget::adjustTransform() {
     The paper here https://dan.andersen.name/files/Andersen-ISMAR-2016.pdf uses depth information both
     on the driver/user and the environment. We don't have depth info here (although we could probably get it?)
     can we still achieve the illusion to some extent w/ only face position?
+
+    -- cool this is pretty nice.
+
+    Note for next time I work on this.....
+
+    Realistically we can pretty much achieve this for the purpose that some people want it for, that is,
+    to be able to see objects through the device from their vantage point in the car.
+
+    If we provide a way to setup the initial transform, given the use case of driving a car, it's already in good shape and
+    eliminates the need for depth perception on the driver or the roadway as we'll already be calibrated.
+
+    Would be great to be able to put it in your car and then switch to this "see thru mode" and then use simple gestures to calibrate it:
+    https://doc.qt.io/qt-5/gestures-overview.html
+ 
+    Then, the face position as it changes, would alter the view slightly, perhaps enough to justify its usage, although
+    I am skeptical if it would be anything more than a novelty at that point, given the coarse adjustment would have
+    already been made and the jitter problem would not be worth the potential "fine" adjustment you would get out of it:
+
+    There is a significant amount of "jitter" in the readout from the driver monitoring model. I'll
+    have to make a video to demonstrate this later, as I don't think people realize there is so much of this, but effectively using
+    this as an input to alter a projected view would be very nauseating. This could be mitigated by doing some kind of interpolation
+    so that it does not jump from one predicted head position to another immediately but I don't know what the performance penalties are like
+    as you start cranking the frequencies up AND try to clean the data AND try to represent the cleaned data in terms of updating the matrix.
+
     */
 #else
     float zoom = 0.3;
