@@ -1,12 +1,19 @@
 #include "selfdrive/ui/qt/widgets/seethrucameraview.h"
+
+#include <QDebug>
+
+#ifdef LEARNING_TRANSFORM
+
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonValue>
-#include <QDebug>
+
 #include "selfdrive/common/params.h"
 #include "selfdrive/common/util.h"
 #include "selfdrive/ui/qt/util.h"
+
+#endif
 
 SeethruCameraViewWidget::SeethruCameraViewWidget(QWidget* parent) : sm({"driverState"}), CameraViewWidget(VISION_STREAM_RGB_WIDE, true, parent) {
     // start a timer to poll for driverstate
