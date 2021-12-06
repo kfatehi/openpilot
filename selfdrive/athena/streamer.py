@@ -6,7 +6,6 @@ import asyncio
 import threading
 from typing import OrderedDict
 import numpy as np
-from av import VideoFrame
 from aiortc import (
   RTCIceCandidate,
   RTCPeerConnection,
@@ -16,32 +15,8 @@ from aiortc import (
 )
 from aiortc.contrib.media import MediaBlackhole
 from aiortc.contrib.signaling import BYE, ApprtcSignaling, object_from_string, object_to_string
-from cereal.visionipc.visionipc_pyx import VisionIpcClient, VisionStreamType # pylint: disable=no-name-in-module, import-error
-
-class VisionIpcTrack(VideoStreamTrack):
-  def __init__(self, vision_stream_type):
-    super().__init__()
-    self.vipc_client = VisionIpcClient("camerad", vision_stream_type, True)
-
-  async def recv(self):
-    pts, time_base = await self.next_timestamp()
-
-    # Connect if not connected
-    while not self.vipc_client.is_connected():
-      self.vipc_client.connect(True)
-      print("connected")
-
-    raw_frame = None
-    while raw_frame is None or not raw_frame.any():
-      raw_frame = self.vipc_client.recv()
-
-    raw_frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((self.vipc_client.height, self.vipc_client.width, 3))
-    frame = VideoFrame.from_ndarray(raw_frame, "bgr24")
-    frame.pts = pts
-    frame.time_base = time_base
-
-    return frame
-
+from vision_ipc_rtc_track import VisionIpcTrack
+from cereal.visionipc.visionipc_pyx import VisionStreamType # pylint: disable=no-name-in-module, import-error
 
 class AthenaSignaling:
   def __init__(self):
@@ -115,8 +90,17 @@ async def run(pc, signaling, recorder):
   def on_track(track):
     recorder.addTrack(track)
 
+  @pc.on("iceconnectionstatechange")
+  def on_iceconnectionstatechange():
+    print(f"ICE connection state is {pc.iceConnectionState}")
+
+  @pc.on("connectionstatechange")
+  def on_connectionstatechange():
+    print(f"connection state is {pc.connectionState}")
+
   # Setup
   params = await signaling.connect()
+  print(params)
   if params["is_initiator"] == "true":
     # send offer
     add_video_track()
@@ -126,6 +110,7 @@ async def run(pc, signaling, recorder):
   # Event loop
   while time.monotonic() - last_kick_time <= TIMEOUT:
     obj = await signaling.receive()
+    print(type(obj).__name__)
     if isinstance(obj, RTCSessionDescription):
       await pc.setRemoteDescription(obj)
       if obj.type == "offer":
