@@ -26,7 +26,7 @@ encoder_proc = None
 
 
 global relay
-encoder_proc = subprocess.Popen(PIPE_ENCODER, bufsize=0, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=False)
+encoder_proc = subprocess.Popen(PIPE_ENCODER, bufsize=0, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
 global cam
 
@@ -65,30 +65,6 @@ async def offer(request):
 
     # open media source
     audio, video = create_local_tracks()
-
-    # await pc.setRemoteDescription(offer)
-    # for t in pc.getTransceivers():
-    #     if t.kind == "audio" and audio:
-    #         pc.addTrack(audio)
-    #     elif t.kind == "video" and video:
-    #         pc.addTrack(video)
-    #         codecs = RTCRtpSender.getCapabilities("video").codecs
-    #         # print(codecs)
-    #         # [RTCRtpCodecCapability(mimeType='video/VP8', clockRate=90000, channels=None, parameters=OrderedDict()),
-    #         # RTCRtpCodecCapability(mimeType='video/rtx', clockRate=90000, channels=None, parameters=OrderedDict()),
-    #         # RTCRtpCodecCapability(mimeType='video/H264', clockRate=90000, channels=None, parameters=OrderedDict([
-    #         #     ('packetization-mode', '1'), ('level-asymmetry-allowed', '1'), ('profile-level-id', '42001f')
-    #         # ])),
-    #         # RTCRtpCodecCapability(mimeType='video/H264', clockRate=90000, channels=None, parameters=OrderedDict([
-    #         #     ('packetization-mode', '1'), ('level-asymmetry-allowed', '1'), ('profile-level-id', '42e01f')
-    #         # ]))]
-    #         preferences = [codec for codec in codecs if codec.mimeType == "video/H264"]
-    #         transceiver = pc.getTransceivers()[0]
-    #         transceiver.setCodecPreferences(preferences)
-
-    # answer = await pc.createAnswer()
-    # await pc.setLocalDescription(answer)
-
 
     if video:
         pc.addTrack(video)
