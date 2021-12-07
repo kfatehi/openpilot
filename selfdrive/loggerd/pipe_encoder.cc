@@ -41,7 +41,6 @@ void encoder_thread() {
       VisionIpcBufExtra extra;
       VisionBuf* buf = vipc_client.recv(&extra);
       if (buf == nullptr) continue;
-      LOGD("frame");
 
       // encode and pipe to stderr
       int out_id = encoder->encode_frame(buf->y, buf->u, buf->v, buf->width, buf->height, extra.timestamp_eof);
@@ -68,9 +67,9 @@ int main(int argc, char** argv) {
 
   std::thread encoding_thread = std::thread(encoder_thread);
 
-  while (!do_exit) {
-    // do main loop stuff`2
-  }
+  // while (!do_exit) {
+  //   do main loop stuff`2
+  // }
 
   encoding_thread.join();
   
