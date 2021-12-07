@@ -132,6 +132,10 @@ def kick_streamer():
 
 def start_streamer(signaling):
   pc = RTCPeerConnection()
+
+
+
+
   recorder = MediaBlackhole()
 
   # Run event loop
