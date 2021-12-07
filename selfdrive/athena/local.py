@@ -16,16 +16,17 @@ from cereal.visionipc.visionipc_pyx import VisionStreamType
 from aiortc.rtcrtpsender import RTCRtpSender
 from aiortc.contrib.media import MediaPlayer,MediaRelay
 import subprocess
+import os
 
 
 PIPE_ENCODER = "../loggerd/pipe_encoder"
-# global encoder_proc
+global encoder_proc
 
-# encoder_proc = None
+encoder_proc = None
 
 
 global relay
-# encoder_proc = subprocess.Popen(PIPE_ENCODER, bufsize=0, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=False)
+encoder_proc = subprocess.Popen(PIPE_ENCODER, bufsize=0, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, universal_newlines=False)
 
 global cam
 
@@ -33,8 +34,7 @@ def create_local_tracks():
     global relay
     global encoder_proc
     global cam
-    # cam = MediaPlayer(encoder_proc.stderr)
-    cam = MediaPlayer('/dev/shm/vidfifo')
+    cam = MediaPlayer('/proc/'+str(os.getpid())+'/fd/'+str(encoder_proc.stderr.name), transcode=False, options={"video_size": "1928x1208", "framerate": "20", "input_format": "h264"})
     relay = MediaRelay()
     return None, relay.subscribe(cam.video)
 
@@ -66,28 +66,47 @@ async def offer(request):
     # open media source
     audio, video = create_local_tracks()
 
+    # await pc.setRemoteDescription(offer)
+    # for t in pc.getTransceivers():
+    #     if t.kind == "audio" and audio:
+    #         pc.addTrack(audio)
+    #     elif t.kind == "video" and video:
+    #         pc.addTrack(video)
+    #         codecs = RTCRtpSender.getCapabilities("video").codecs
+    #         # print(codecs)
+    #         # [RTCRtpCodecCapability(mimeType='video/VP8', clockRate=90000, channels=None, parameters=OrderedDict()),
+    #         # RTCRtpCodecCapability(mimeType='video/rtx', clockRate=90000, channels=None, parameters=OrderedDict()),
+    #         # RTCRtpCodecCapability(mimeType='video/H264', clockRate=90000, channels=None, parameters=OrderedDict([
+    #         #     ('packetization-mode', '1'), ('level-asymmetry-allowed', '1'), ('profile-level-id', '42001f')
+    #         # ])),
+    #         # RTCRtpCodecCapability(mimeType='video/H264', clockRate=90000, channels=None, parameters=OrderedDict([
+    #         #     ('packetization-mode', '1'), ('level-asymmetry-allowed', '1'), ('profile-level-id', '42e01f')
+    #         # ]))]
+    #         preferences = [codec for codec in codecs if codec.mimeType == "video/H264"]
+    #         transceiver = pc.getTransceivers()[0]
+    #         transceiver.setCodecPreferences(preferences)
+
+    # answer = await pc.createAnswer()
+    # await pc.setLocalDescription(answer)
+
+
+    if video:
+        pc.addTrack(video)
+        # Filter for only for the preferred_codec
+        codecs = RTCRtpSender.getCapabilities("video").codecs
+        preferences = [codec for codec in codecs if codec.mimeType == "video/H264"]
+        transceiver = pc.getTransceivers()[0]
+        transceiver.setCodecPreferences(preferences)
+
     await pc.setRemoteDescription(offer)
     for t in pc.getTransceivers():
         if t.kind == "audio" and audio:
             pc.addTrack(audio)
-        elif t.kind == "video" and video:
-            pc.addTrack(video)
-            codecs = RTCRtpSender.getCapabilities("video").codecs
-            # print(codecs)
-            # [RTCRtpCodecCapability(mimeType='video/VP8', clockRate=90000, channels=None, parameters=OrderedDict()),
-            # RTCRtpCodecCapability(mimeType='video/rtx', clockRate=90000, channels=None, parameters=OrderedDict()),
-            # RTCRtpCodecCapability(mimeType='video/H264', clockRate=90000, channels=None, parameters=OrderedDict([
-            #     ('packetization-mode', '1'), ('level-asymmetry-allowed', '1'), ('profile-level-id', '42001f')
-            # ])),
-            # RTCRtpCodecCapability(mimeType='video/H264', clockRate=90000, channels=None, parameters=OrderedDict([
-            #     ('packetization-mode', '1'), ('level-asymmetry-allowed', '1'), ('profile-level-id', '42e01f')
-            # ]))]
-            preferences = [codec for codec in codecs if codec.mimeType == "video/H264"]
-            transceiver = pc.getTransceivers()[0]
-            transceiver.setCodecPreferences(preferences)
 
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
+
+
 
     return web.Response(
         content_type="application/json",
