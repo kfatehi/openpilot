@@ -19,25 +19,12 @@ import subprocess
 import os
 
 
-PIPE_ENCODER = "../loggerd/pipe_encoder"
-global encoder_proc
-
-encoder_proc = None
-
-
-global relay
-encoder_proc = subprocess.Popen(PIPE_ENCODER, bufsize=0, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-
-global cam
+videoTrack = None
 
 def create_local_tracks():
-    global relay
-    global encoder_proc
-    global cam
-    cam = MediaPlayer('/proc/'+str(os.getpid())+'/fd/'+str(encoder_proc.stderr.name), transcode=False, options={"video_size": "1928x1208", "framerate": "20", "input_format": "h264"})
-    relay = MediaRelay()
-    return None, relay.subscribe(cam.video)
-
+    global videoTrack
+    videoTrack = VisionIpcTrack(VisionStreamType.VISION_STREAM_RGB_FRONT)
+    return None, videoTrack
 
 async def index(request):
     content = open(os.path.join("index.html"), "r").read()
