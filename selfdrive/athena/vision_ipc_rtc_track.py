@@ -1,6 +1,8 @@
 from cereal.visionipc.visionipc_pyx import VisionIpcClient # pylint: disable=no-name-in-module, import-error
 from aiortc import VideoStreamTrack
 import asyncio
+from av import VideoFrame
+import numpy as np
 
 class VisionIpcTrack(VideoStreamTrack):
   def __init__(self, vision_stream_type):
@@ -19,7 +21,12 @@ class VisionIpcTrack(VideoStreamTrack):
     while raw_frame is None or not raw_frame.any():
       raw_frame = self.vipc_client.recv()
 
-    return raw_frame
+    raw_frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((self.vipc_client.height, self.vipc_client.width, 3))
+    frame = VideoFrame.from_ndarray(raw_frame, "bgr24")
+    frame.pts = pts
+    frame.time_base = time_base
+
+    return frame
 
 if __name__ == "__main__":
     from time import time_ns
