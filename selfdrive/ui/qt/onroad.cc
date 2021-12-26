@@ -5,9 +5,9 @@
 #include "selfdrive/common/timing.h"
 #include "selfdrive/ui/paint.h"
 #include "selfdrive/ui/qt/util.h"
-#include "selfdrive/ui/qt/api.h"
 #ifdef ENABLE_MAPS
 #include "selfdrive/ui/qt/maps/map.h"
+#include "selfdrive/ui/qt/maps/map_helpers.h"
 #endif
 
 OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
@@ -42,10 +42,12 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
 void OnroadWindow::updateState(const UIState &s) {
   QColor bgColor = bg_colors[s.status];
   Alert alert = Alert::get(*(s.sm), s.scene.started_frame);
-  if (alert.type == "controlsUnresponsive") {
-    bgColor = bg_colors[STATUS_ALERT];
+  if (s.sm->updated("controlsState") || !alert.equal({})) {
+    if (alert.type == "controlsUnresponsive") {
+      bgColor = bg_colors[STATUS_ALERT];
+    }
+    alerts->updateAlert(alert, bgColor);
   }
-  alerts->updateAlert(alert, bgColor);
   if (bg != bgColor) {
     // repaint border
     bg = bgColor;
@@ -66,19 +68,7 @@ void OnroadWindow::offroadTransition(bool offroad) {
 #ifdef ENABLE_MAPS
   if (!offroad) {
     if (map == nullptr && (QUIState::ui_state.has_prime || !MAPBOX_TOKEN.isEmpty())) {
-      QMapboxGLSettings settings;
-
-      // Valid for 4 weeks since we can't swap tokens on the fly
-      QString token = MAPBOX_TOKEN.isEmpty() ? CommaApi::create_jwt({}, 4 * 7 * 24 * 3600) : MAPBOX_TOKEN;
-
-      if (!Hardware::PC()) {
-        settings.setCacheDatabasePath("/data/mbgl-cache.db");
-      }
-      settings.setApiBaseUrl(MAPS_HOST);
-      settings.setCacheDatabaseMaximumSize(20 * 1024 * 1024);
-      settings.setAccessToken(token.trimmed());
-
-      MapWindow * m = new MapWindow(settings);
+      MapWindow * m = new MapWindow(get_mapbox_settings());
       m->setFixedWidth(topWidget(this)->width() / 2);
       QObject::connect(this, &OnroadWindow::offroadTransitionSignal, m, &MapWindow::offroadTransition);
       split->addWidget(m, 0, Qt::AlignRight);
@@ -183,4 +173,10 @@ void NvgWindow::paintGL() {
     LOGW("slow frame time: %.2f", dt);
   }
   prev_draw_t = cur_draw_t;
+}
+
+void NvgWindow::showEvent(QShowEvent *event) {
+  CameraViewWidget::showEvent(event);
+  ui_update_params(&QUIState::ui_state);
+  prev_draw_t = millis_since_boot();
 }
