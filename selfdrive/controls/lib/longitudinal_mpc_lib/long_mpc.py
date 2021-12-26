@@ -203,7 +203,7 @@ class LongitudinalMpc():
     self.solver = AcadosOcpSolverFast('long', N, EXPORT_DIR)
     self.v_solution = [0.0 for i in range(N+1)]
     self.a_solution = [0.0 for i in range(N+1)]
-    self.prev_a = self.a_solution
+    self.prev_a = np.array(self.a_solution)
     self.j_solution = [0.0 for i in range(N)]
     self.yref = np.zeros((N+1, COST_DIM))
     for i in range(N):
@@ -242,7 +242,7 @@ class LongitudinalMpc():
       self.solver.cost_set(i, 'Zl', Zl)
 
   def set_weights_for_xva_policy(self):
-    W = np.asfortranarray(np.diag([0., 10., 1., 10., 1.]))
+    W = np.asfortranarray(np.diag([0., 10., 1., 10., 0.0, 1.]))
     for i in range(N):
       self.solver.cost_set(i, 'W', W)
     # Setting the slice without the copy make the array not contiguous,
@@ -255,7 +255,7 @@ class LongitudinalMpc():
       self.solver.cost_set(i, 'Zl', Zl)
 
   def set_cur_state(self, v, a):
-    if abs(self.x0[1] - v) > 1.:
+    if abs(self.x0[1] - v) > 2.:
       self.x0[1] = v
       self.x0[2] = a
       for i in range(0, N+1):
@@ -349,10 +349,10 @@ class LongitudinalMpc():
     self.solver.cost_set(N, "yref", self.yref[N][:COST_E_DIM])
     self.accel_limit_arr[:,0] = -10.
     self.accel_limit_arr[:,1] = 10.
-    x_obstacle = 1e5*np.ones((N+1))
+    x_obstacle = 1e5*np.ones(N+1)
     self.params = np.concatenate([self.accel_limit_arr,
                              x_obstacle[:,None],
-                             self.prev_a], axis=1)
+                             self.prev_a[:,None]], axis=1)
     self.run()
 
 
@@ -371,14 +371,13 @@ class LongitudinalMpc():
     self.a_solution = self.x_sol[:,2]
     self.j_solution = self.u_sol[:,0]
 
-    self.prev_a = interp(T_IDXS + 0.05, T_IDXS, self.a_solution)
+    self.prev_a = np.interp(T_IDXS + 0.05, T_IDXS, self.a_solution)
 
     t = sec_since_boot()
     if self.solution_status != 0:
       if t > self.last_cloudlog_t + 5.0:
         self.last_cloudlog_t = t
-        cloudlog.warning("Long mpc reset, solution_status: %s" % (
-                          self.solution_status))
+        cloudlog.warning(f"Long mpc reset, solution_status: {self.solution_status}")
       self.reset()
 
 

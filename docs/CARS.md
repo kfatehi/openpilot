@@ -83,6 +83,7 @@
 | Audi      | A3 2014-19                    | ACC + Lane Assist | Stock            | 0mph               | 0mph         |
 | Audi      | A3 Sportback e-tron 2017-18   | ACC + Lane Assist | Stock            | 0mph               | 0mph         |
 | Audi      | Q2 2018                       | ACC + Lane Assist | Stock            | 0mph               | 0mph         |
+| Audi      | Q3 2020-21                    | ACC + Lane Assist | Stock            | 0mph               | 0mph         |
 | Audi      | S3 2015                       | ACC + Lane Assist | Stock            | 0mph               | 0mph         |
 | Buick     | Regal 2018<sup>1</sup>        | Adaptive Cruise   | openpilot        | 0mph               | 7mph         |
 | Cadillac  | ATS 2018<sup>1</sup>          | Adaptive Cruise   | openpilot        | 0mph               | 7mph         |
@@ -121,7 +122,7 @@
 | Jeep      | Grand Cherokee 2019-20        | Adaptive Cruise   | Stock            | 0mph               | 39mph        |
 | Kia       | Ceed 2019                     | SCC + LKAS        | Stock            | 0mph               | 0mph         |
 | Kia       | Forte 2018-21                 | SCC + LKAS        | Stock            | 0mph               | 0mph         |
-| Kia       | K5 2021                       | SCC + LFA         | Stock            | 0mph               | 0mph         |
+| Kia       | K5 2021-22                    | SCC + LFA         | Stock            | 0mph               | 0mph         |
 | Kia       | Niro EV 2019-21               | SCC + LKAS        | Stock            | 0mph               | 0mph         |
 | Kia       | Niro Hybrid 2021              | SCC + LKAS        | Stock            | 0mph               | 0mph         |
 | Kia       | Niro PHEV 2019                | SCC + LKAS        | Stock            | 10mph              | 32mph        |
@@ -146,10 +147,10 @@
 | Škoda     | Scala 2020                    | Driver Assistance | Stock            | 0mph               | 0mph         |
 | Škoda     | Superb 2015-18                | Driver Assistance | Stock            | 0mph               | 0mph         |
 | Subaru    | Ascent 2019                   | EyeSight          | Stock            | 0mph               | 0mph         |
-| Subaru    | Crosstrek 2018-19             | EyeSight          | Stock            | 0mph               | 0mph         |
+| Subaru    | Crosstrek 2018-20             | EyeSight          | Stock            | 0mph               | 0mph         |
 | Subaru    | Forester 2019-21              | EyeSight          | Stock            | 0mph               | 0mph         |
 | Subaru    | Impreza 2017-19               | EyeSight          | Stock            | 0mph               | 0mph         |
-| Volkswagen| Arteon 2021<sup>4</sup>       | Driver Assistance | Stock            | 0mph               | 0mph         |
+| Volkswagen| Arteon 2018, 2021<sup>4</sup> | Driver Assistance | Stock            | 0mph               | 0mph         |
 | Volkswagen| Atlas 2018-19                 | Driver Assistance | Stock            | 0mph               | 0mph         |
 | Volkswagen| California 2021<sup>4</sup>   | Driver Assistance | Stock            | 0mph               | 32mph        |
 | Volkswagen| e-Golf 2014, 2019-20          | Driver Assistance | Stock            | 0mph               | 0mph         |
