@@ -10,13 +10,12 @@ extern "C" {
 }
 
 #include "selfdrive/common/queue.h"
-#include "selfdrive/loggerd/encoder.h"
 
-// OmxEncoder, lossey codec using hardware hevc
-class OmxEncoder : public VideoEncoder {
+// StreamEncoder, lossey codec using hardware hevc
+class StreamEncoder {
 public:
-  OmxEncoder(const char* filename, int width, int height, int fps, int bitrate, bool h265, bool downscale, bool write = true, bool pipe_to_stderr = false);
-  ~OmxEncoder();
+  StreamEncoder(int width, int height, int fps, int bitrate);
+  ~StreamEncoder();
   int encode_frame(const uint8_t *y_ptr, const uint8_t *u_ptr, const uint8_t *v_ptr,
                    int in_width, int in_height, uint64_t ts);
   void encoder_open(const char* path);
@@ -32,23 +31,15 @@ public:
 
 private:
   void wait_for_state(OMX_STATETYPE state);
-  static void handle_out_buf(OmxEncoder *e, OMX_BUFFERHEADERTYPE *out_buf);
+  static void handle_out_buf(StreamEncoder *e, OMX_BUFFERHEADERTYPE *out_buf);
 
   int width, height, fps;
-  char vid_path[1024];
-  char lock_path[1024];
   bool is_open = false;
   bool dirty = false;
-  bool write = false;
-  bool pipe_to_stderr = false;
   int counter = 0;
-
-  const char* filename;
-  FILE *of = nullptr;
 
   size_t codec_config_len;
   uint8_t *codec_config = NULL;
-  bool wrote_codec_config;
 
   std::mutex state_lock;
   std::condition_variable state_cv;
@@ -67,7 +58,6 @@ private:
   AVFormatContext *ofmt_ctx;
   AVCodecContext *codec_ctx;
   AVStream *out_stream;
-  bool remuxing;
   unsigned char* output_buffer;
 
   bool downscale;

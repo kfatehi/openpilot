@@ -8,8 +8,7 @@
 #include "selfdrive/common/swaglog.h"
 #include "selfdrive/common/util.h"
 
-#include "selfdrive/loggerd/encoder.h"
-#include "selfdrive/loggerd/omx_encoder.h"
+#include "selfdrive/streamerd/stream_encoder.h"
 
 constexpr int FPS = 20;
 const int BITRATE = 512000;
@@ -18,8 +17,8 @@ namespace {
 ExitHandler do_exit;
 
 void encoder_thread() {
-  VisionIpcClient vipc_client = VisionIpcClient("camerad", VISION_STREAM_YUV_FRONT, false);
-  OmxEncoder *encoder = NULL;
+  VisionIpcClient vipc_client = VisionIpcClient("camerad", VISION_STREAM_DRIVER, false);
+  StreamEncoder *encoder = NULL;
 
   while (!do_exit) {
     if (!vipc_client.connect(false)) {
@@ -31,7 +30,7 @@ void encoder_thread() {
 
     if (encoder == NULL) {
       printf("encoder init %dx%d\n", (int)buf_info.width,  (int)buf_info.height);
-      encoder = new OmxEncoder(NULL, buf_info.width, buf_info.height, FPS, BITRATE, false, false, false);
+      encoder = new StreamEncoder(buf_info.width, buf_info.height, FPS, BITRATE);
       printf("omx encoder inited\n");
       encoder->encoder_open(NULL);
       printf("created encoder\n");
@@ -42,7 +41,7 @@ void encoder_thread() {
       VisionIpcBufExtra extra;
       VisionBuf* buf = vipc_client.recv(&extra);
       if (buf == nullptr) continue;
-
+      printf("inb4\n");
       // encode and pipe to stderr
       int out_id = encoder->encode_frame(buf->y, buf->u, buf->v, buf->width, buf->height, extra.timestamp_eof);
       if (out_id == -1) {
