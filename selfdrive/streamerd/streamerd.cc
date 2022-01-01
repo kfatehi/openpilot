@@ -23,6 +23,12 @@ const int BITRATE = 512000;
 namespace {
 ExitHandler do_exit;
 
+void send_data_to_rtp(uint8_t *data, int len, int framerate) {
+  char buffer[50];
+  sprintf(buffer, "%d\n", len);
+  sendto(sock, buffer, sizeof(buffer), 0, reinterpret_cast<const struct sockaddr *>(&addr), sizeof(addr));
+}
+
 void encoder_thread() {
   VisionIpcClient vipc_client = VisionIpcClient("camerad", VISION_STREAM_DRIVER, false);
   StreamEncoder *encoder = NULL;
@@ -36,7 +42,7 @@ void encoder_thread() {
     VisionBuf buf_info = vipc_client.buffers[0];
 
     if (encoder == NULL) {
-      encoder = new StreamEncoder(buf_info.width, buf_info.height, FPS, BITRATE);
+      encoder = new StreamEncoder(buf_info.width, buf_info.height, FPS, BITRATE, send_data_to_rtp);
     }
 
     while (!do_exit) {
@@ -48,11 +54,6 @@ void encoder_thread() {
       int out_id = encoder->encode_frame(buf->y, buf->u, buf->v, buf->width, buf->height, extra.timestamp_eof);
       if (out_id == -1) {
         printf("out_id not valid\n");
-      } else {
-        printf("out_id: %d\n", out_id);
-        // encoder->out_buf
-        
-        sendto(sock, "hello", 5, 0, reinterpret_cast<const struct sockaddr *>(&addr), sizeof(addr));
       }
     }
   }
