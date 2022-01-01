@@ -18,8 +18,6 @@ public:
   ~StreamEncoder();
   int encode_frame(const uint8_t *y_ptr, const uint8_t *u_ptr, const uint8_t *v_ptr,
                    int in_width, int in_height, uint64_t ts);
-  void encoder_open(const char* path);
-  void encoder_close();
 
   // OMX callbacks
   static OMX_ERRORTYPE event_handler(OMX_HANDLETYPE component, OMX_PTR app_data, OMX_EVENTTYPE event,
@@ -34,8 +32,6 @@ private:
   static void handle_out_buf(StreamEncoder *e, OMX_BUFFERHEADERTYPE *out_buf);
 
   int width, height, fps;
-  bool is_open = false;
-  bool dirty = false;
   int counter = 0;
 
   size_t codec_config_len;
@@ -54,12 +50,4 @@ private:
 
   SafeQueue<OMX_BUFFERHEADERTYPE *> free_in;
   SafeQueue<OMX_BUFFERHEADERTYPE *> done_out;
-
-  AVFormatContext *ofmt_ctx;
-  AVCodecContext *codec_ctx;
-  AVStream *out_stream;
-  unsigned char* output_buffer;
-
-  bool downscale;
-  uint8_t *y_ptr2, *u_ptr2, *v_ptr2;
 };

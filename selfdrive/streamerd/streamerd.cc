@@ -10,6 +10,13 @@
 
 #include "selfdrive/streamerd/stream_encoder.h"
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+typedef int SOCKET;
+SOCKET sock;
+sockaddr_in addr;
+
 constexpr int FPS = 20;
 const int BITRATE = 512000;
 
@@ -30,7 +37,6 @@ void encoder_thread() {
 
     if (encoder == NULL) {
       encoder = new StreamEncoder(buf_info.width, buf_info.height, FPS, BITRATE);
-      encoder->encoder_open(NULL);
     }
 
     while (!do_exit) {
@@ -42,11 +48,12 @@ void encoder_thread() {
       int out_id = encoder->encode_frame(buf->y, buf->u, buf->v, buf->width, buf->height, extra.timestamp_eof);
       if (out_id == -1) {
         printf("out_id not valid\n");
+      } else {
+        printf("out_id: %d\n", out_id);
+        // encoder->out_buf
+        
+        sendto(sock, "hello", 5, 0, reinterpret_cast<const struct sockaddr *>(&addr), sizeof(addr));
       }
-    }
-
-    if(encoder != NULL) {
-      encoder->encoder_close();
     }
   }
 }
@@ -55,6 +62,13 @@ void encoder_thread() {
 
 
 int main(int argc, char** argv) {
+
+  sock = socket(AF_INET, SOCK_DGRAM, 0);
+  addr.sin_addr.s_addr = inet_addr("192.168.27.119");
+  addr.sin_port = htons(5000);
+  addr.sin_family = AF_INET;
+
+
   Context::create();
   std::thread encoding_thread = std::thread(encoder_thread);
   // while (!do_exit) {

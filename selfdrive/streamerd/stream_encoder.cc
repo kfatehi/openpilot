@@ -20,8 +20,6 @@
 #include "selfdrive/common/util.h"
 #include "selfdrive/loggerd/include/msm_media_info.h"
 
-constexpr int IO_CONTEXT_BUFFER_SIZE = 32*1024;
-
 // Check the OMX error code and assert if an error occurred.
 #define OMX_CHECK(_expr)              \
   do {                                \
@@ -29,9 +27,6 @@ constexpr int IO_CONTEXT_BUFFER_SIZE = 32*1024;
   } while (0)
 
 extern ExitHandler do_exit;
-
-int frames_in_count = 0;
-int frames_out_count = 0;
 
 // ***** OMX callback functions *****
 
@@ -79,7 +74,6 @@ OMX_ERRORTYPE StreamEncoder::event_handler(OMX_HANDLETYPE component, OMX_PTR app
     The application should return from this call within 5 msec. */
 OMX_ERRORTYPE StreamEncoder::empty_buffer_done(OMX_HANDLETYPE component, OMX_PTR app_data,
                                                    OMX_BUFFERHEADERTYPE *buffer) {
-  frames_in_count++;
   StreamEncoder *e = (StreamEncoder*)app_data;
   e->free_in.push(buffer);
   return OMX_ErrorNone;
@@ -97,10 +91,8 @@ OMX_ERRORTYPE StreamEncoder::empty_buffer_done(OMX_HANDLETYPE component, OMX_PTR
     The application should return from this call within 5 msec. */
 OMX_ERRORTYPE StreamEncoder::fill_buffer_done(OMX_HANDLETYPE component, OMX_PTR app_data,
                                                   OMX_BUFFERHEADERTYPE *buffer) {
-  frames_out_count++;
   StreamEncoder *e = (StreamEncoder*)app_data;
   e->done_out.push(buffer);
-  printf("\r%d / %d\n", frames_in_count, frames_out_count);
   return OMX_ErrorNone;
 }
 
@@ -241,6 +233,9 @@ void StreamEncoder::handle_out_buf(StreamEncoder *e, OMX_BUFFERHEADERTYPE *out_b
 #endif
   }
 
+  // Is this the correct place, then, to turn the H264 into RTP payloads and send them out to subscriber(s) ?
+  // If so then the next missing link is something like this: 
+  // https://github.com/GStreamer/gst-plugins-good/blob/master/gst/rtp/gstrtph264pay.c
 
   // give omx back the buffer
 #ifdef QCOM2
@@ -254,9 +249,6 @@ void StreamEncoder::handle_out_buf(StreamEncoder *e, OMX_BUFFERHEADERTYPE *out_b
 int StreamEncoder::encode_frame(const uint8_t *y_ptr, const uint8_t *u_ptr, const uint8_t *v_ptr,
                              int in_width, int in_height, uint64_t ts) {
   int err;
-  if (!this->is_open) {
-    return -1;
-  }
 
   // this sometimes freezes... put it outside the encoder lock so we can still trigger rotates...
   // THIS IS A REALLY BAD IDEA, but apparently the race has to happen 30 times to trigger this
@@ -306,92 +298,13 @@ int StreamEncoder::encode_frame(const uint8_t *y_ptr, const uint8_t *u_ptr, cons
     handle_out_buf(this, out_buf);
   }
 
-  this->dirty = true;
-
   this->counter++;
 
   return ret;
 }
 
-void StreamEncoder::encoder_open(const char* path) {
-  AVCodec *codec = NULL;
-  codec = avcodec_find_encoder(AV_CODEC_ID_H264);
-  assert(codec);
-
-  this->ofmt_ctx = avformat_alloc_context();
-  assert(this->ofmt_ctx);
-
-  this->out_stream = avformat_new_stream(this->ofmt_ctx, codec);
-  assert(this->out_stream);
-
-  // set codec correctly
-  av_register_all();
-
-  this->codec_ctx = avcodec_alloc_context3(codec);
-  assert(this->codec_ctx);
-  this->codec_ctx->width = this->width;
-  this->codec_ctx->height = this->height;
-  this->codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-  this->codec_ctx->time_base = (AVRational){ 1, this->fps };
-
-  if (!this->output_buffer) {
-    this->output_buffer = (unsigned char*) av_malloc(IO_CONTEXT_BUFFER_SIZE);
-    assert(this->output_buffer);
-  }
-
-  //  * Allocate and initialize an AVIOContext for buffered I/O. It must be later
-  //  * freed with avio_context_free().
-  this->ofmt_ctx->pb = avio_alloc_context(
-    this->output_buffer,
-    IO_CONTEXT_BUFFER_SIZE,
-    1,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-  );
-  this->ofmt_ctx->flags |= AVFMT_FLAG_CUSTOM_IO;
-
-  this->is_open = true;
-  this->counter = 0;
-}
-
-void StreamEncoder::encoder_close() {
-  if (this->is_open) {
-    if (this->dirty) {
-      // drain output only if there could be frames in the encoder
-
-      OMX_BUFFERHEADERTYPE* in_buf = this->free_in.pop();
-      in_buf->nFilledLen = 0;
-      in_buf->nOffset = 0;
-      in_buf->nFlags = OMX_BUFFERFLAG_EOS;
-      in_buf->nTimeStamp = this->last_t + 1000000LL/this->fps;
-
-      OMX_CHECK(OMX_EmptyThisBuffer(this->handle, in_buf));
-
-      while (true) {
-        OMX_BUFFERHEADERTYPE *out_buf = this->done_out.pop();
-
-        handle_out_buf(this, out_buf);
-
-        if (out_buf->nFlags & OMX_BUFFERFLAG_EOS) {
-          break;
-        }
-      }
-      this->dirty = false;
-    }
-
-    av_write_trailer(this->ofmt_ctx);
-    avcodec_free_context(&this->codec_ctx);
-    avio_closep(&this->ofmt_ctx->pb);
-    avformat_free_context(this->ofmt_ctx);   
-  }
-  this->is_open = false;
-}
 
 StreamEncoder::~StreamEncoder() {
-  assert(!this->is_open);
-
   OMX_CHECK(OMX_SendCommand(this->handle, OMX_CommandStateSet, OMX_StateIdle, NULL));
 
   wait_for_state(OMX_StateIdle);
@@ -416,11 +329,5 @@ StreamEncoder::~StreamEncoder() {
 
   if (this->codec_config) {
     free(this->codec_config);
-  }
-
-  if (this->downscale) {
-    free(this->y_ptr2);
-    free(this->u_ptr2);
-    free(this->v_ptr2);
   }
 }
