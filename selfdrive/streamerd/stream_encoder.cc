@@ -30,6 +30,9 @@ constexpr int IO_CONTEXT_BUFFER_SIZE = 32*1024;
 
 extern ExitHandler do_exit;
 
+int frames_in_count = 0;
+int frames_out_count = 0;
+
 // ***** OMX callback functions *****
 
 void StreamEncoder::wait_for_state(OMX_STATETYPE state_) {
@@ -66,19 +69,38 @@ OMX_ERRORTYPE StreamEncoder::event_handler(OMX_HANDLETYPE component, OMX_PTR app
   return OMX_ErrorNone;
 }
 
+/** The EmptyBufferDone method is used to return emptied buffers from an
+    input port back to the application for reuse.  This is a blocking call 
+    so the application should not attempt to refill the buffers during this
+    call, but should queue them and refill them in another thread.  There
+    is no error return, so the application shall handle any errors generated
+    internally.  
+    
+    The application should return from this call within 5 msec. */
 OMX_ERRORTYPE StreamEncoder::empty_buffer_done(OMX_HANDLETYPE component, OMX_PTR app_data,
                                                    OMX_BUFFERHEADERTYPE *buffer) {
-  printf("empty_buffer_done\n");
+  frames_in_count++;
   StreamEncoder *e = (StreamEncoder*)app_data;
   e->free_in.push(buffer);
   return OMX_ErrorNone;
 }
 
+/** The FillBufferDone method is used to return filled buffers from an
+    output port back to the application for emptying and then reuse.  
+    This is a blocking call so the application should not attempt to 
+    empty the buffers during this call, but should queue the buffers 
+    and empty them in another thread.  There is no error return, so 
+    the application shall handle any errors generated internally.  The 
+    application shall also update the buffer header to indicate the
+    number of bytes placed into the buffer.  
+
+    The application should return from this call within 5 msec. */
 OMX_ERRORTYPE StreamEncoder::fill_buffer_done(OMX_HANDLETYPE component, OMX_PTR app_data,
                                                   OMX_BUFFERHEADERTYPE *buffer) {
-  printf("fill_buffer_done\n");
+  frames_out_count++;
   StreamEncoder *e = (StreamEncoder*)app_data;
   e->done_out.push(buffer);
+  printf("\r%d / %d\n", frames_in_count, frames_out_count);
   return OMX_ErrorNone;
 }
 
@@ -251,7 +273,6 @@ int StreamEncoder::encode_frame(const uint8_t *y_ptr, const uint8_t *u_ptr, cons
   int ret = this->counter;
 
   uint8_t *in_buf_ptr = in_buf->pBuffer;
-  printf("in_buf ptr %p\n", in_buf_ptr);
 
   uint8_t *in_y_ptr = in_buf_ptr;
   int in_y_stride = VENUS_Y_STRIDE(COLOR_FMT_NV12, this->width);

@@ -29,11 +29,8 @@ void encoder_thread() {
     VisionBuf buf_info = vipc_client.buffers[0];
 
     if (encoder == NULL) {
-      printf("encoder init %dx%d\n", (int)buf_info.width,  (int)buf_info.height);
       encoder = new StreamEncoder(buf_info.width, buf_info.height, FPS, BITRATE);
-      printf("omx encoder inited\n");
       encoder->encoder_open(NULL);
-      printf("created encoder\n");
     }
 
     while (!do_exit) {
@@ -41,14 +38,11 @@ void encoder_thread() {
       VisionIpcBufExtra extra;
       VisionBuf* buf = vipc_client.recv(&extra);
       if (buf == nullptr) continue;
-      printf("inb4\n");
       // encode and pipe to stderr
       int out_id = encoder->encode_frame(buf->y, buf->u, buf->v, buf->width, buf->height, extra.timestamp_eof);
       if (out_id == -1) {
         printf("out_id not valid\n");
       }
-
-      printf("encoded\n");
     }
 
     if(encoder != NULL) {
@@ -61,17 +55,10 @@ void encoder_thread() {
 
 
 int main(int argc, char** argv) {
-  printf("starting pipe encoder\n");
-
   Context::create();
-
   std::thread encoding_thread = std::thread(encoder_thread);
-
   // while (!do_exit) {
   //   do main loop stuff`2
   // }
-
   encoding_thread.join();
-  
-  printf("stopped pipe encoder\n");
 }
