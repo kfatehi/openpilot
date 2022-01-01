@@ -234,7 +234,9 @@ void StreamEncoder::handle_out_buf(StreamEncoder *e, OMX_BUFFERHEADERTYPE *out_b
 #endif
   }
 
+  // e->send_data_to_rtp( buf_data, out_buf->nFilledLen-out_buf->nOffset, e->fps);
   e->send_data_to_rtp( (uint8_t*)&out_buf->pBuffer[4], out_buf->nFilledLen-4, e->fps);
+  // e->send_data_to_rtp( (uint8_t*)&buf_data[4], out_buf->nFilledLen-out_buf->nOffset-4, e->fps);
 
   // Is this the correct place, then, to turn the H264 into RTP payloads and send them out to subscriber(s) ?
   // If so then the next missing link is something like this: 
