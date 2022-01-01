@@ -23,11 +23,149 @@ const int BITRATE = 512000;
 namespace {
 ExitHandler do_exit;
 
-void send_data_to_rtp(uint8_t *data, int len, int framerate) {
-  char buffer[50];
-  sprintf(buffer, "%d\n", len);
-  sendto(sock, buffer, sizeof(buffer), 0, reinterpret_cast<const struct sockaddr *>(&addr), sizeof(addr));
+
+
+
+#define TYPE_H264               96
+#define SSRC_NUM                10
+#define BUF_SIZE                1500
+#define RTP_PAYLOAD_MAX_SIZE    1400
+/* RTP HEADER */
+typedef struct{
+    /* 1 byte */
+    uint8_t csrc_len:    4;    
+    uint8_t extension:    1;    
+    uint8_t padding:    1;    
+    uint8_t version:    2;    
+    /* 2 byte */
+    uint8_t payload_type:    7;    
+    uint8_t marker:        1;    
+    /* 3-4 */
+    uint16_t seq_no;        
+    /* 5-8 */
+    uint32_t timestamp;        
+    /* 9-12 */
+    uint32_t ssrc;            
+}__attribute__ ((packed)) rtp_header;
+
+typedef struct {
+    uint8_t type:        5;    
+    uint8_t nri:        2;   
+    uint8_t f:        1;   
+}__attribute__ ((packed)) nalu_header;
+
+typedef struct {
+    uint8_t type: 5;
+    uint8_t nri: 2;
+    uint8_t f: 1;
+} __attribute__ ((packed)) fu_indicator;
+
+typedef struct {
+    uint8_t type: 5;
+    uint8_t r: 1;
+    uint8_t e: 1;
+    uint8_t s: 1;
+} __attribute__ ((packed)) fu_header;
+
+
+// Write data to socket
+void send_data_client(uint8_t *send_buf, size_t len_sendbuf)
+{
+  sendto(sock, send_buf, len_sendbuf, 0, reinterpret_cast<const struct sockaddr *>(&addr), sizeof(addr));
 }
+
+void send_data_to_rtp(uint8_t *data, int len, int framerate) {
+    static uint8_t sendbuf[BUF_SIZE];
+    static uint32_t ts_current = 0;
+    static uint16_t seq_num = 0;
+    static uint16_t pack_num, last_pack_size, current_pack;
+    uint8_t *nalu_playload;
+    /* RTP HEADER */
+    rtp_header *rtp_hdr;
+    /* NALU HEADER */
+    nalu_header *nalu_hdr;
+
+    fu_indicator *fu_ind;
+
+    fu_header *fu_hdr;
+
+    ts_current += (90000 / framerate);
+    memset(sendbuf, 0, sizeof(sendbuf));
+
+    rtp_hdr = (rtp_header*)&sendbuf[0];
+    rtp_hdr->version = 2;
+    rtp_hdr->marker = 0;
+    rtp_hdr->csrc_len = 0;
+    rtp_hdr->extension = 0;
+    rtp_hdr->padding = 0;
+    rtp_hdr->ssrc = htonl(SSRC_NUM);
+    rtp_hdr->payload_type = TYPE_H264;
+    rtp_hdr->timestamp = htonl(ts_current);
+
+    if (len <= RTP_PAYLOAD_MAX_SIZE) {
+        rtp_hdr->marker = 1;
+        rtp_hdr->seq_no = htons(++seq_num);
+        nalu_hdr = (nalu_header*)&sendbuf[12];
+
+        nalu_hdr->type = data[0] & 0x1f;
+        nalu_hdr->f = data[0] & 0x80;
+        nalu_hdr->nri = data[0] & 0x60 >> 5;
+        nalu_playload = (uint8_t*)&sendbuf[13];
+
+        memcpy(nalu_playload, data + 1, len-1);
+
+        send_data_client(sendbuf, len + 13);
+    } else {
+        pack_num = (len % RTP_PAYLOAD_MAX_SIZE) ? (len / RTP_PAYLOAD_MAX_SIZE + 1) : (len / RTP_PAYLOAD_MAX_SIZE);
+        /* data size in last packege */
+        last_pack_size = (len % RTP_PAYLOAD_MAX_SIZE) ? (len % RTP_PAYLOAD_MAX_SIZE) : (RTP_PAYLOAD_MAX_SIZE);
+        current_pack = 0;
+
+        fu_ind = (fu_indicator *)&sendbuf[12];
+        fu_ind->f = data[0] & 0x80;
+        fu_ind->nri = (data[0] & 0x60) >> 5;
+
+        fu_ind->type = 28;
+        fu_hdr = (fu_header *)&sendbuf[13];
+        fu_hdr->type = data[0] & 0x1f;
+
+        while (current_pack < pack_num) {
+
+            rtp_hdr->seq_no = htons(++seq_num);
+            /* first packet */
+            if(current_pack == 0) {
+
+                fu_hdr->s = 1, fu_hdr->e = 0, fu_hdr->r = 0;
+                rtp_hdr->marker = 0;
+
+                nalu_playload = (uint8_t*)&sendbuf[14];
+                memset(nalu_playload, 0, RTP_PAYLOAD_MAX_SIZE);
+                memcpy(nalu_playload, data + 1, RTP_PAYLOAD_MAX_SIZE);
+
+                send_data_client(sendbuf, RTP_PAYLOAD_MAX_SIZE + 14);
+            } else if(current_pack < pack_num - 1){
+                fu_hdr->s = 0, fu_hdr->e = 0, fu_hdr->r = 0;
+                rtp_hdr->marker = 0;
+                nalu_playload = (uint8_t*)&sendbuf[14];
+                memset(nalu_playload, 0, RTP_PAYLOAD_MAX_SIZE);
+                memcpy(nalu_playload, data + (current_pack * RTP_PAYLOAD_MAX_SIZE) + 1, RTP_PAYLOAD_MAX_SIZE);
+
+                send_data_client(sendbuf, RTP_PAYLOAD_MAX_SIZE + 14);
+            /* last packet */
+            } else {
+                rtp_hdr->marker = 1;
+                nalu_playload = (uint8_t*)&sendbuf[14];
+                fu_hdr->s = 0, fu_hdr->e = 1, fu_hdr->r = 0;
+                memset(nalu_playload, 0, RTP_PAYLOAD_MAX_SIZE);
+                memcpy(nalu_playload, data + (current_pack * RTP_PAYLOAD_MAX_SIZE) + 1, last_pack_size - 1);
+
+                send_data_client(sendbuf, last_pack_size - 1 + 14);
+            }
+            current_pack += 1;
+        }
+    }
+}
+
 
 void encoder_thread() {
   VisionIpcClient vipc_client = VisionIpcClient("camerad", VISION_STREAM_DRIVER, false);
@@ -66,7 +204,7 @@ int main(int argc, char** argv) {
 
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   addr.sin_addr.s_addr = inet_addr("192.168.27.119");
-  addr.sin_port = htons(5000);
+  addr.sin_port = htons(50000);
   addr.sin_family = AF_INET;
 
 
