@@ -17,9 +17,8 @@ typedef int SOCKET;
 SOCKET sock;
 sockaddr_in addr;
 
-
-constexpr int FPS = 20;
-const int BITRATE = 5120000;
+int FPS = 20;
+int BITRATE = 5120000;
 
 namespace {
 ExitHandler do_exit;
@@ -202,12 +201,55 @@ void encoder_thread() {
 
 
 int main(int argc, char** argv) {
+  char *target = NULL;
+  int port = 50000;
+  int c;
+  int index;
+  opterr = 0;
+
+  while ((c = getopt (argc, argv, "f:t:p:b:")) != -1)
+    switch (c)
+      {
+      case 't':
+        target = optarg;
+        break;
+      case 'p':
+        port = atoi(optarg);
+        break;
+      case 'f':
+        FPS = atoi(optarg);
+        break;
+      case 'b':
+        BITRATE = atoi(optarg);
+        break;
+      case '?':
+        if (optopt == 'f' || optopt == 't' || optopt == 'p' || optopt == 'b')
+          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+        else if (isprint (optopt))
+          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+        else
+          fprintf (stderr,
+                   "Unknown option character `\\x%x'.\n",
+                   optopt);
+        return 1;
+      default:
+        abort ();
+      }
+
+  if (target == nullptr) {
+    target = (char *) "127.0.0.1";
+  }
+
+  printf ("fps = %d, bitrate = %d, port = %d, target = %s\n",
+          FPS, BITRATE, port, target);
+
+  for (index = optind; index < argc; index++)
+    printf ("Non-option argument %s\n", argv[index]);
 
   sock = socket(AF_INET, SOCK_DGRAM, 0);
-  addr.sin_addr.s_addr = inet_addr("192.168.27.119");
-  addr.sin_port = htons(50000);
+  addr.sin_addr.s_addr = inet_addr(target);
+  addr.sin_port = htons(port);
   addr.sin_family = AF_INET;
-
 
   Context::create();
   std::thread encoding_thread = std::thread(encoder_thread);
