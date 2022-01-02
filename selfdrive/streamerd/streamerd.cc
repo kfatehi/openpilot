@@ -16,12 +16,10 @@
 typedef int SOCKET;
 SOCKET sock;
 sockaddr_in addr;
-SOCKET sock2;
-sockaddr_in addr2;
 
 
 constexpr int FPS = 20;
-const int BITRATE = 512000;
+const int BITRATE = 5120000;
 
 namespace {
 ExitHandler do_exit;
@@ -75,7 +73,6 @@ typedef struct {
 void send_data_client(uint8_t *send_buf, size_t len_sendbuf)
 {
   sendto(sock, send_buf, len_sendbuf, 0, reinterpret_cast<const struct sockaddr *>(&addr), sizeof(addr));
-  sendto(sock2, send_buf, len_sendbuf, 0, reinterpret_cast<const struct sockaddr *>(&addr2), sizeof(addr2));
 }
 
 void send_data_to_rtp(uint8_t *data, int len, int framerate) {
@@ -195,7 +192,7 @@ void encoder_thread() {
       // encode and pipe to stderr
       int out_id = encoder->encode_frame(buf->y, buf->u, buf->v, buf->width, buf->height, extra.timestamp_eof);
       if (out_id == -1) {
-        printf("out_id not valid\n");
+        printf("out_id not valid\n");;
       }
     }
   }
@@ -210,12 +207,6 @@ int main(int argc, char** argv) {
   addr.sin_addr.s_addr = inet_addr("192.168.27.119");
   addr.sin_port = htons(50000);
   addr.sin_family = AF_INET;
-
-
-  sock2 = socket(AF_INET, SOCK_DGRAM, 0);
-  addr2.sin_addr.s_addr = inet_addr("192.168.27.198");
-  addr2.sin_port = htons(50000);
-  addr2.sin_family = AF_INET;
 
 
   Context::create();

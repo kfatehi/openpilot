@@ -150,7 +150,7 @@ StreamEncoder::StreamEncoder(int width, int height, int fps, int bitrate,  void 
   out_port.format.video.xFramerate = 0;
   out_port.format.video.nBitrate = bitrate;
   out_port.format.video.eCompressionFormat = OMX_VIDEO_CodingAVC;
-
+  
   out_port.format.video.eColorFormat = OMX_COLOR_FormatUnused;
 
   OMX_CHECK(OMX_SetParameter(this->handle, OMX_IndexParamPortDefinition, (OMX_PTR) &out_port));
@@ -176,19 +176,35 @@ StreamEncoder::StreamEncoder(int width, int height, int fps, int bitrate,  void 
   avc.nBFrames = 0;
   avc.nPFrames = 15;
 
-  avc.eProfile = OMX_VIDEO_AVCProfileHigh;
-  avc.eLevel = OMX_VIDEO_AVCLevel31;
+  avc.eProfile = OMX_VIDEO_AVCProfileBaseline;
+  avc.eLevel = OMX_VIDEO_AVCLevel52;
 
   avc.nAllowedPictureTypes |= OMX_VIDEO_PictureTypeB;
-  avc.eLoopFilterMode = OMX_VIDEO_AVCLoopFilterEnable;
-
-  avc.nRefFrames = 1;
-  avc.bUseHadamard = OMX_TRUE;
-  avc.bEntropyCodingCABAC = OMX_TRUE;
-  avc.bWeightedPPrediction = OMX_TRUE;
-  avc.bconstIpred = OMX_TRUE;
+  avc.eLoopFilterMode = OMX_VIDEO_AVCLoopFilterDisable;
 
   OMX_CHECK(OMX_SetParameter(this->handle, OMX_IndexParamVideoAvc, &avc));
+
+
+
+
+
+  // setup NAL size
+  // OMX_IndexConfigVideoNalSize            /**< reference: OMX_VIDEO_CONFIG_NALSIZE */
+  OMX_VIDEO_CONFIG_NALSIZE nalsize = {0};
+  nalsize.nSize = sizeof(nalsize);
+  nalsize.nPortIndex = (OMX_U32) PORT_INDEX_OUT;
+  OMX_GetConfig(this->handle, OMX_IndexConfigVideoNalSize, &nalsize);
+  nalsize.nNaluBytes = 800;
+  OMX_SetConfig(this->handle, OMX_IndexConfigVideoNalSize, &nalsize);
+
+  // setup NAL slice mode
+  // OMX_IndexParamVideoSliceFMO            /**< reference: OMX_VIDEO_PARAM_AVCSLICEFMO */
+  OMX_VIDEO_PARAM_AVCSLICEFMO slicemode = {0};
+  slicemode.nSize = sizeof(slicemode);
+  slicemode.nPortIndex = (OMX_U32) PORT_INDEX_OUT;
+  OMX_GetParameter(this->handle, OMX_IndexParamVideoSliceFMO, &slicemode);
+  slicemode.eSliceMode = OMX_VIDEO_SLICEMODE_AVCByteSlice;
+  OMX_SetParameter(this->handle, OMX_IndexParamVideoSliceFMO, &slicemode);
 
   OMX_CHECK(OMX_SendCommand(this->handle, OMX_CommandStateSet, OMX_StateIdle, NULL));
 
