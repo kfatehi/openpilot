@@ -194,7 +194,7 @@ StreamEncoder::StreamEncoder(int width, int height, int fps, int bitrate,  void 
   nalsize.nSize = sizeof(nalsize);
   nalsize.nPortIndex = (OMX_U32) PORT_INDEX_OUT;
   OMX_GetConfig(this->handle, OMX_IndexConfigVideoNalSize, &nalsize);
-  nalsize.nNaluBytes = 800;
+  nalsize.nNaluBytes = 400;
   OMX_SetConfig(this->handle, OMX_IndexConfigVideoNalSize, &nalsize);
 
   // setup NAL slice mode

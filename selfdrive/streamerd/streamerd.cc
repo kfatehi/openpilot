@@ -275,7 +275,14 @@ int main(int argc, char** argv) {
   printf ("fps = %d, bitrate = %d, port = %d, target = %s\n",
           FPS, BITRATE, port, target);
 
+  int flags;
+
   sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+  flags = fcntl (sock, F_GETFL, 0);
+  fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+  
   addr.sin_addr.s_addr = inet_addr(target);
   addr.sin_port = htons(port);
   addr.sin_family = AF_INET;
