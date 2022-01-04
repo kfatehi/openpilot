@@ -103,7 +103,7 @@ OMX_ERRORTYPE StreamEncoder::fill_buffer_done(OMX_HANDLETYPE component, OMX_PTR 
 
 // ***** encoder functions *****
 
-StreamEncoder::StreamEncoder(int width, int height, int fps, int bitrate,  void (*send_data_to_rtp)(uint8_t *data, int len, int framerate)) {
+StreamEncoder::StreamEncoder(int width, int height, int fps, int bitrate,  void (*send_data_to_rtp)(uint8_t *data, int len)) {
   this->send_data_to_rtp = send_data_to_rtp;
   this->width = width;
   this->height = height;
@@ -251,7 +251,7 @@ void StreamEncoder::handle_out_buf(StreamEncoder *e, OMX_BUFFERHEADERTYPE *out_b
   }
 
   // e->send_data_to_rtp( buf_data, out_buf->nFilledLen-out_buf->nOffset, e->fps);
-  e->send_data_to_rtp( (uint8_t*)&out_buf->pBuffer[4], out_buf->nFilledLen-4, e->fps);
+  e->send_data_to_rtp( (uint8_t*)&out_buf->pBuffer[4], out_buf->nFilledLen-4);
   // e->send_data_to_rtp( (uint8_t*)&buf_data[4], out_buf->nFilledLen-out_buf->nOffset-4, e->fps);
 
   // Is this the correct place, then, to turn the H264 into RTP payloads and send them out to subscriber(s) ?

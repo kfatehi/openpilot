@@ -14,7 +14,7 @@ extern "C" {
 // StreamEncoder, lossey codec using hardware hevc
 class StreamEncoder {
 public:
-  StreamEncoder(int width, int height, int fps, int bitrate, void (*send_data_to_rtp)(uint8_t *data, int len, int framerate));
+  StreamEncoder(int width, int height, int fps, int bitrate, void (*send_data_to_rtp)(uint8_t *data, int len));
   ~StreamEncoder();
   int encode_frame(const uint8_t *y_ptr, const uint8_t *u_ptr, const uint8_t *v_ptr,
                    int in_width, int in_height, uint64_t ts);
@@ -31,7 +31,7 @@ private:
   void wait_for_state(OMX_STATETYPE state);
   static void handle_out_buf(StreamEncoder *e, OMX_BUFFERHEADERTYPE *out_buf);
 
-  void (*send_data_to_rtp)(uint8_t *data, int len, int framerate);
+  void (*send_data_to_rtp)(uint8_t *data, int len);
   int width, height, fps;
   int counter = 0;
 

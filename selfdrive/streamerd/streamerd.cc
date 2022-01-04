@@ -19,6 +19,15 @@ sockaddr_in addr;
 
 int FPS = 20;
 int BITRATE = 5120000;
+char *target = NULL;
+int port = 50000;
+
+// typedef struct{
+//   uint8_t *buf;
+//   uint8_t len;
+// } nalu;
+
+// SafeQueue<nalu *> nalUnitsFromEncoder;
 
 namespace {
 ExitHandler do_exit;
@@ -74,7 +83,15 @@ void send_data_client(uint8_t *send_buf, size_t len_sendbuf)
   sendto(sock, send_buf, len_sendbuf, 0, reinterpret_cast<const struct sockaddr *>(&addr), sizeof(addr));
 }
 
-void send_data_to_rtp(uint8_t *data, int len, int framerate) {
+void send_data_to_rtp(uint8_t *data, int len) {
+  // this happens on encoder thread
+  // on the network thread we will actually be draining it
+  // and then calling the real function
+  // nalu *thisnalu;
+  // thisnalu->buf = data;
+  // thisnalu->len = len;
+  // nalUnitsFromEncoder.push(thisnalu);
+
     static uint8_t sendbuf[BUF_SIZE];
     static uint32_t ts_current = 0;
     static uint16_t seq_num = 0;
@@ -89,7 +106,7 @@ void send_data_to_rtp(uint8_t *data, int len, int framerate) {
 
     fu_header *fu_hdr;
 
-    ts_current += (90000 / framerate);
+    ts_current += (90000 / FPS);
     memset(sendbuf, 0, sizeof(sendbuf));
 
     rtp_hdr = (rtp_header*)&sendbuf[0];
@@ -197,12 +214,27 @@ void encoder_thread() {
   }
 }
 
+
+// void network_thread() {
+//   sock = socket(AF_INET, SOCK_DGRAM, 0);
+//   addr.sin_addr.s_addr = inet_addr(target);
+//   addr.sin_port = htons(port);
+//   addr.sin_family = AF_INET;
+
+//   printf("will ship frames to %s\n", target);
+//   nalu *n;
+//   while (!do_exit) {
+//     if (nalUnitsFromEncoder.try_pop(n)) {
+//       handle_data_sent_to_rtp(n->buf, n->len);
+//       printf("did a thing?\n");
+//     }
+//   }
+// }
+
 } // namespace
 
 
 int main(int argc, char** argv) {
-  char *target = NULL;
-  int port = 50000;
   int c;
   int index;
   opterr = 0;
@@ -243,18 +275,20 @@ int main(int argc, char** argv) {
   printf ("fps = %d, bitrate = %d, port = %d, target = %s\n",
           FPS, BITRATE, port, target);
 
-  for (index = optind; index < argc; index++)
-    printf ("Non-option argument %s\n", argv[index]);
-
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   addr.sin_addr.s_addr = inet_addr(target);
   addr.sin_port = htons(port);
   addr.sin_family = AF_INET;
 
+  for (index = optind; index < argc; index++)
+    printf ("Non-option argument %s\n", argv[index]);
+
   Context::create();
   std::thread encoding_thread = std::thread(encoder_thread);
-  // while (!do_exit) {
-  //   do main loop stuff`2
-  // }
+  // std::thread networking_thread = std::thread(network_thread);
+  while (!do_exit) {
+    sleep(1);
+  }
   encoding_thread.join();
+  // networking_thread.join();
 }
