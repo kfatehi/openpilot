@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find /home/keyvan/openpilot/system/webrtc* -type f)",
-      "Bash(grep \"PubMaster\\\\|SubMaster\" /home/keyvan/openpilot/selfdrive/pandad/panda*.py)"
-    ]
-  }
-}
