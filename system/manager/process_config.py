@@ -116,4 +116,48 @@ procs = [
   PythonProcess("joystick", "tools.joystick.joystick_control", and_(joystick, iscar)),
 ]
 
+# ── BODYGUARD fork: security camera / teleop mode ──
+# Upstream procs list is left intact for easy merging.
+# When BODYGUARD is set, filter to the minimal process set needed for
+# WebRTC streaming + body teleoperation. Everything else is blocked.
+BODYGUARD = os.getenv("BODYGUARD") is not None
+
+if BODYGUARD:
+  BODYGUARD_ALLOWLIST = {
+    # Core streaming pipeline
+    "camerad",           # VisionIPC frame capture
+    "stream_encoderd",   # H.264 encoding for WebRTC (record=false)
+    "webrtcd",           # WebRTC server (port 5001)
+    "bridge",            # Cereal message bridge (notcar)
+    "card",              # Publishes carParams (needed for CP.notCar gating)
+    # Teleop
+    "webjoystick",       # Teleop web UI (port 5000)
+    "joystickd",         # testJoystick -> carControl
+    "selfdrived",        # Publishes selfdriveState/onroadEvents for joystickd+card control path
+    # Selfdrived dependency chain (needed to clear commIssue and enable controls)
+    "modeld",            # modelV2
+    "dmonitoringmodeld", # driver monitoring model
+    "dmonitoringd",      # driverMonitoringState
+    "locationd",         # livePose
+    "calibrationd",      # liveCalibration
+    "paramsd",           # liveParameters
+    "torqued",           # liveTorqueParameters
+    "lagd",              # liveDelay
+    "radard",            # radarState
+    "plannerd",          # longitudinalPlan + driverAssistance
+    "sensord",           # accelerometer/gyroscope feed for location stack
+    # Manager infrastructure
+    "pandad",            # Manager needs pandaStates
+    "hardwared",         # Manager needs deviceState.started
+    "logmessaged",       # Log routing
+    "timed",             # System time sync
+    "updated",           # OTA updates (only_offroad)
+    "ui",                # WiFi config, settings, display
+  }
+  procs = [p for p in procs if p.name in BODYGUARD_ALLOWLIST]
+
+  for p in procs:
+    if p.name == "webrtcd":
+      p.restart_if_crash = True   # critical path — must auto-heal
+
 managed_processes = {p.name: p for p in procs}

@@ -1,4 +1,5 @@
 """Install exception handler for process crash."""
+import os
 import sentry_sdk
 from enum import Enum
 from sentry_sdk.integrations.threading import ThreadingIntegration
@@ -42,6 +43,9 @@ def set_tag(key: str, value: str) -> None:
 
 
 def init(project: SentryProject) -> bool:
+  if os.getenv("BODYGUARD"):
+    return False
+
   build_metadata = get_build_metadata()
   # forks like to mess with this, so double check
   comma_remote = build_metadata.openpilot.comma_remote and "commaai" in build_metadata.openpilot.git_origin

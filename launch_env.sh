@@ -11,3 +11,9 @@ if [ -z "$AGNOS_VERSION" ]; then
 fi
 
 export STAGING_ROOT="/data/safe_staging"
+
+# BODYGUARD fork: security camera / teleop mode
+# Disables recording, uploading, telemetry, and all non-essential processes.
+# Only keeps: camerad, stream_encoderd, webrtcd, teleop, ui, audio, and manager infra.
+# Unset or remove this line to restore stock openpilot behavior.
+export BODYGUARD=1

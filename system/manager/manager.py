@@ -65,11 +65,16 @@ def manager_init() -> None:
   params.put("HardwareSerial", serial)
 
   # set dongle id
-  reg_res = register(show_spinner=True)
-  if reg_res:
-    dongle_id = reg_res
+  if os.getenv("BODYGUARD"):
+    # BODYGUARD mode: skip registration and sentry — no phone-home
+    dongle_id = UNREGISTERED_DONGLE_ID
+    params.put("DongleId", dongle_id)
   else:
-    raise Exception(f"Registration failed for device {serial}")
+    reg_res = register(show_spinner=True)
+    if reg_res:
+      dongle_id = reg_res
+    else:
+      raise Exception(f"Registration failed for device {serial}")
   os.environ['DONGLE_ID'] = dongle_id  # Needed for swaglog
   os.environ['GIT_ORIGIN'] = build_metadata.openpilot.git_normalized_origin # Needed for swaglog
   os.environ['GIT_BRANCH'] = build_metadata.channel # Needed for swaglog
@@ -79,7 +84,8 @@ def manager_init() -> None:
     os.environ['CLEAN'] = '1'
 
   # init logging
-  sentry.init(sentry.SentryProject.SELFDRIVE)
+  if not os.getenv("BODYGUARD"):
+    sentry.init(sentry.SentryProject.SELFDRIVE)
   cloudlog.bind_global(dongle_id=dongle_id,
                        version=build_metadata.openpilot.version,
                        origin=build_metadata.openpilot.git_normalized_origin,
